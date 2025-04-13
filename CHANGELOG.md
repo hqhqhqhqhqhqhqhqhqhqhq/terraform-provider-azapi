@@ -1,10 +1,80 @@
+## v2.4.0 (unreleased)
+
+ENHANCEMENTS:
+- `azapi_resource` resource: Support schema validation in `terraform validate`.
+- `azapi_resource` resource: Preflight validation supports nested resources.
+
+BUG FIXES:
+- Fix a bug that `azapi_update_resource` resource produced inconsistent results when only `error_message_regex` is changed.
+- Fix a bug that `azapi_resource_action` resource could not be migrated correctly when the `body` is empty string.
+- Fix a bug that after moving resource from `azurerm` provider, the `azapi_resource` resource could not be updated correctly.
+
+## v2.3.0
+FEATURES:
+- **New Ephemeral Resource**: azapi_resource_action
+
+ENHANCEMENTS:
+- `azapi` provider: The `oidc_azure_service_connection_id` field can be sourced from the `ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID` or `ARM_OIDC_AZURE_SERVICE_CONNECTION_ID` Environment Variables.
+- `azapi` provider: The `enable_preflight` field can be sourced from the `ARM_ENABLE_PREFLIGHT` Environment Variable.
+- `azapi` provider: The `disable_default_output` field can be sourced from the `ARM_DISABLE_DEFAULT_OUTPUT` Environment Variable.
+- `azapi` provider: Support `maximum_busy_retry_attempts` field, which is used to specify the maximum number of busy retry attempts if the Azure API returns an HTTP 408, 429, 500, 502, 503, or 504 response.
+- `azapi_resource_action` resource, data source: Support `sensitive_response_export_values` field, which is used to specify the sensitive fields to export.
+- `azaapi_resource_action` resource, data source: Support `sensitive_output` field, which is a sensitive computed field that contains the fields exported by `sensitive_response_export_values`.
+- Update bicep types to https://github.com/ms-henglu/bicep-types-az/commit/c4c1c04cee8c5362b705f1519cf0cd701ef65f6b
+- `azapi` resources: Skip external requests when no resource changes are detected.
+
+BUG FIXES:
+- Fix a bug that query parameters and headers don't work properly with unknown values
+- Fix more edge cases that the provider produced inconsistent result after apply when default output feature is enabled.
+- Fix a bug that when moving resource from `azurerm` resource, the id could not be parsed correctly.
+- Fix a bug that custom retry configuration doesn't override the default retry configuration.
+
+
+## v2.2.0
+
+ENHANCEMENTS:
+- `azapi_resource` resource: Improved 403 handling for management group resources to include child resources
+- Update bicep types to https://github.com/ms-henglu/bicep-types-az/commit/4da2e194de989ed72552add82b9a5ead5223695b
+
+BUG FIXES:
+- Fix a bug that the provider produced inconsistent result after apply when default output feature is enabled.  
+Notice: Terraform will detect the `output` field's changes made outside of Terraform since the last "terraform apply". You can run `terraform refresh` to update the state file with the latest values.
+- Fix a bug that the GET after PUT retry timeout doesn't work properly when the environment variable is set.
+
+## v2.1.0
+FEATURES:
+- `azapi_resource` resource: Support resource move operation, it allows moving resources from `azurerm` provider.
+
+ENHANCEMENTS:
+- `azapi_client_config` data source: Support `object_id` field.
+- Update bicep types to https://github.com/ms-henglu/bicep-types-az/commit/401bed53e5495fb79f6c3357d9befb9fea158b1f
+
+BUG FIXES:
+- Fix a bug when `body` contains an unknown float number, the provider will crash.
+- Fix the crash that occurs when no tenant ID is configured in Azure CLI.
+- Fix a bug that using multiple locks can result in a deadlock.
+
+## v2.0.1
+BREAKING CHANGES:
+- `azapi_resource`, `azapi_update_resource` resources and data sources' `output` field defaults to the readonly fields when the `response_export_values` is not specified.
+- `azapi_resource_list` data source's `output` field defaults to the response when the `response_export_values` is not specified.
+
+ENHANCEMENTS:
+- `azapi_data_plane_resource` resource: Support `Microsoft.Purview/accounts/Scanning/managedvirtualnetworks` type.
+- Support a default retry policy that retries when GET request fails with 404 status code after resource creation.
+- `azapi` provider: Support `disable_default_output` field, which is used to disable the default output for the resources and data sources.
+- Update bicep types to https://github.com/ms-henglu/bicep-types-az/commit/c3ff45dfffe7f229447639b5982a1e2deadc1b71
+
+BUG FIXES:
+- Fix a bug that non-standard LRO error responses are not handled properly.
+
 ## v2.0.0-beta
 BREAKING CHANGES:
 - Provider field `default_naming_prefix` and `default_naming_suffix` are removed. Please specify the naming prefix and suffix in the resource's `name` field instead.
 - Provider field `enable_hcl_output_for_data_source` is removed. The `output` field in the data source is always in HCL format.
 - The `azapi_resource`'s `removing_special_chars` field is removed. Please specify the `name` field and remove the special characters in the `name` field instead.
 - The `ignore_body_changes` field is removed. Please use the `lifecyle.ignore_changes` to ignore some properties when comparing the resource with its current state.
-- The `body` field now only accepts an HCL object. Please remove the `jsondecode` function when using the `body` field.
+- The `body` field now only accepts an HCL object. Please remove the `jsonencode` function when using the `body` field.
 - The `output` field now only exports an HCL object. Please remove the `jsondecode` function when using the `output` field.
 - The `use_msi` field now defaults to `false`, please set it to `true` explicitly if you want to authenticate using Managed Service Identity.
 
@@ -18,12 +88,15 @@ FEATURES:
 - **New Provider Function**: extension_resource_id
 
 ENHANCEMENTS:
+- `azapi` provider: Support `enable_preflight` field, which is used to enable Preflight Validation, the default value is `false`.
 - `azapi_resource` and `azapi_data_plane_resource` resource: Support `replace_triggers_external_values` field which is used to trigger a replacement of the resource.
+- `azapi_resource` and `azapi_data_plane_resource` resource: Support `replace_triggers_refs` field which is used to trigger a replacement of the resource.
 - `azapi` resources and data sources: Support `retry` field, which is used to specify the retry configuration.
 - `azapi` resources and data sources: Support `headers` and `query_parameters` fields, which are used to specify the headers and query parameters.
 - `azapi` resources and data sources: The `response_export_values` field supports JMESPath expressions.
 - Accept `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` environment variables when authenticating using AKS workload identity.
 - `azapi` provider: Support `oidc_azure_service_connection_id` field, which is used to specify the Azure Service Connection ID for OIDC authentication with Azure DevOps.
+- Update bicep types to https://github.com/ms-henglu/bicep-types-az/commit/7492c6d0a12a07f97b955661bf6df83d51bbb14d
 
 
 ## v1.15.0

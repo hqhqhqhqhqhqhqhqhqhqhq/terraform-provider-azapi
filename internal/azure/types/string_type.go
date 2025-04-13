@@ -6,6 +6,8 @@ import (
 	"regexp"
 
 	"github.com/Azure/terraform-provider-azapi/internal/azure/utils"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
 var _ TypeBase = &StringType{}
@@ -18,23 +20,31 @@ type StringType struct {
 	Pattern   string `json:"pattern"`
 }
 
+func (s *StringType) GetReadOnly(i interface{}) interface{} {
+	if s == nil || i == nil {
+		return nil
+	}
+	return i
+}
+
 func (s *StringType) AsTypeBase() *TypeBase {
 	typeBase := TypeBase(s)
 	return &typeBase
 }
 
-func (s *StringType) Validate(body interface{}, path string) []error {
-	if body == nil {
+func (s *StringType) Validate(body attr.Value, path string) []error {
+	if s == nil || body == nil || body.IsNull() || body.IsUnknown() {
 		return nil
 	}
-	v, ok := body.(string)
-	if !ok {
+
+	var v string
+	switch input := body.(type) {
+	case types.String:
+		v = input.ValueString()
+	case types.Dynamic:
+		return s.Validate(input.UnderlyingValue(), path)
+	default:
 		return []error{utils.ErrorMismatch(path, "string", fmt.Sprintf("%T", body))}
-	}
-	if v == "" {
-		// unknown values will be converted to "", skip validation for now
-		// TODO: improve the validation to support unknown values
-		return nil
 	}
 	if s.MinLength != nil && len(v) < *s.MinLength {
 		return []error{utils.ErrorCommon(path, fmt.Sprintf("string length is less than %d", *s.MinLength))}

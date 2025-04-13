@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 )
 
 var _ TypeBase = &ResourceType{}
@@ -16,6 +18,16 @@ type ResourceType struct {
 	Flags              []ResourceTypeFlag
 }
 
+func (t *ResourceType) GetReadOnly(i interface{}) interface{} {
+	if t == nil || i == nil {
+		return nil
+	}
+	if t.Body != nil && t.Body.Type != nil {
+		return (*t.Body.Type).GetReadOnly(i)
+	}
+	return i
+}
+
 func (t *ResourceType) GetWriteOnly(body interface{}) interface{} {
 	if t == nil || body == nil {
 		return nil
@@ -26,8 +38,8 @@ func (t *ResourceType) GetWriteOnly(body interface{}) interface{} {
 	return nil
 }
 
-func (t *ResourceType) Validate(body interface{}, path string) []error {
-	if t == nil || body == nil {
+func (t *ResourceType) Validate(body attr.Value, path string) []error {
+	if t == nil || body == nil || body.IsNull() || body.IsUnknown() {
 		return []error{}
 	}
 	errors := make([]error, 0)

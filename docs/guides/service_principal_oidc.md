@@ -1,6 +1,6 @@
 ---
 layout: "azapi"
-page_title: "AzAPI Provider: Authenticating via a Service Principal and OpenID Connect"
+page_title: "Authentication: Authenticating via a Service Principal and OpenID Connect"
 description: |-
   This guide will cover how to use a Service Principal (Shared Account) with OpenID Connect as authentication for the AzAPI Provider.
 
@@ -57,7 +57,7 @@ az rest --method POST \
 
 Where the body is:
 
-```json
+```shell
 {
   "name":"${REPO_NAME}-pull-request",
   "issuer":"https://token.actions.githubusercontent.com",
@@ -101,7 +101,7 @@ When running Terraform in GitHub Actions, the provider will detect the `ACTIONS_
 
 For GitHub Actions workflows, you'll need to ensure the workflow has `write` permissions for the `id-token`.
 
-```yaml
+```shell
 permissions:
   id-token: write
   contents: read
@@ -138,24 +138,24 @@ Here is an example of how to specify the OIDC token using the `oidc_token` provi
 terraform {
   required_providers {
     azapi = {
-      source  = "azure/azapi"
+      source = "azure/azapi"
     }
   }
 }
 
-provider "azapi" { 
+provider "azapi" {
   oidc_token = "{OIDC Token}"
-  
+
   // or use oidc_token_file_path
   // oidc_token_file_path = "{OIDC Token File Path}"
-  
+
   use_oidc = true
 }
 ```
 
 And here is an example of azure-pipelines.yml file:
 
-```yaml
+```shell
   - task: AzureCLI@2
     displayName: Acc Tests with OIDC Token
     inputs:
@@ -181,21 +181,21 @@ Here is an example of how to specify the OIDC request token and URL using the `o
 terraform {
   required_providers {
     azapi = {
-      source  = "azure/azapi"
+      source = "azure/azapi"
     }
   }
 }
 
 provider "azapi" {
-  oidc_request_token = "{OIDC Request Token}"
+  oidc_request_token               = "{OIDC Request Token}"
   oidc_azure_service_connection_id = "{Azure Service Connection ID}"
-  use_oidc = true
+  use_oidc                         = true
 }
 ```
 
 And here is an example of azure-pipelines.yml file:
 
-```yaml
+```shell
   - task: AzureCLI@2
     displayName: Acc Tests with OIDC Azure Pipeline
     inputs:

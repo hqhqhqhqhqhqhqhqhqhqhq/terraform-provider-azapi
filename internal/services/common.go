@@ -4,28 +4,21 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/Azure/terraform-provider-azapi/internal/docstrings"
 	"github.com/Azure/terraform-provider-azapi/internal/services/dynamic"
-	"github.com/Azure/terraform-provider-azapi/internal/services/myplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func CommonAttributeResponseExportValues() schema.DynamicAttribute {
-	return schema.DynamicAttribute{
-		Optional: true,
-		PlanModifiers: []planmodifier.Dynamic{
-			myplanmodifier.DynamicUseStateWhen(dynamic.SemanticallyEqual),
-		},
-		MarkdownDescription: docstrings.ResponseExportValues(),
-	}
-}
-
-func buildOutputFromBody(responseBody interface{}, modelResponseExportValues types.Dynamic) (types.Dynamic, error) {
+func buildOutputFromBody(responseBody interface{}, modelResponseExportValues types.Dynamic, defaultResult interface{}) (types.Dynamic, error) {
 	if modelResponseExportValues.IsNull() {
-		return types.DynamicValue(types.ObjectValueMust(map[string]attr.Type{}, map[string]attr.Value{})), nil
+		if defaultResult == nil {
+			return types.DynamicValue(types.ObjectValueMust(map[string]attr.Type{}, map[string]attr.Value{})), nil
+		}
+		data, err := json.Marshal(defaultResult)
+		if err != nil {
+			return types.DynamicNull(), err
+		}
+		return dynamic.FromJSONImplied(data)
 	}
 
 	data, err := dynamic.ToJSON(modelResponseExportValues)
@@ -50,5 +43,29 @@ func buildOutputFromBody(responseBody interface{}, modelResponseExportValues typ
 		return types.DynamicValue(flattenOutputJMES(responseBody, responseExportValues)), nil
 	default:
 		return types.DynamicNull(), errors.New("unsupported type for response_export_values, must be a list or map")
+	}
+}
+
+func volatileFieldList() []string {
+	return []string{
+		"etag",
+		"updatedBy",
+		"updated",
+		"updatedOn",
+		"updatedTimestamp",
+		"lastUpdatedOn",
+		"lastUpdated",
+		"lastUpdatedTime",
+		"lastUpdatedTimeUtc",
+		"lastUpdatedDateUTC",
+		"modifiedOn",
+		"lastModifiedUtc",
+		"lastModifiedTimeUtc",
+		"lastModifiedAt",
+		"lastModifiedBy",
+		"lastModifiedByType",
+		"freeTrialRemainingTime",
+		"trialDaysRemaining",
+		"daysTrialRemaining",
 	}
 }

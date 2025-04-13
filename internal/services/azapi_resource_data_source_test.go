@@ -8,7 +8,7 @@ import (
 	"github.com/Azure/terraform-provider-azapi/internal/acceptance"
 	"github.com/Azure/terraform-provider-azapi/internal/acceptance/check"
 	"github.com/Azure/terraform-provider-azapi/internal/azure/location"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 type GenericDataSource struct{}
@@ -110,6 +110,20 @@ func TestAccGenericDataSource_queryParameter(t *testing.T) {
 		{
 			Config: r.queryParameter(data),
 			Check:  resource.ComposeTestCheckFunc(),
+		},
+	})
+}
+
+func TestAccGenericDataSource_defaultOutput(t *testing.T) {
+	data := acceptance.BuildTestData(t, "data.azapi_resource", "test")
+	r := GenericDataSource{}
+
+	data.DataSourceTest(t, []resource.TestStep{
+		{
+			Config: r.defaultOutput(data),
+			Check: resource.ComposeTestCheckFunc(
+				check.That(data.ResourceName).Key("output.properties.automationHybridServiceUrl").Exists(),
+			),
 		},
 	})
 }
@@ -217,4 +231,16 @@ data "azapi_resource" "test" {
   }
 }
 `, GenericResource{}.complete(data))
+}
+
+func (r GenericDataSource) defaultOutput(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+%s
+
+data "azapi_resource" "test" {
+  name      = azapi_resource.test.name
+  parent_id = azapi_resource.test.parent_id
+  type      = azapi_resource.test.type
+}
+`, GenericResource{}.defaultOutput(data))
 }

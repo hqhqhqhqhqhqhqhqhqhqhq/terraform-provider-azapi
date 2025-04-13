@@ -1,9 +1,18 @@
 package types
 
+import "github.com/hashicorp/terraform-plugin-framework/attr"
+
 var _ TypeBase = &AnyType{}
 
 type AnyType struct {
 	Type string `json:"$type"`
+}
+
+func (t *AnyType) GetReadOnly(i interface{}) interface{} {
+	if t == nil || i == nil {
+		return nil
+	}
+	return i
 }
 
 func (t *AnyType) AsTypeBase() *TypeBase {
@@ -11,7 +20,7 @@ func (t *AnyType) AsTypeBase() *TypeBase {
 	return &typeBase
 }
 
-func (t *AnyType) Validate(body interface{}, path string) []error {
+func (t *AnyType) Validate(body attr.Value, path string) []error {
 	return nil
 }
 

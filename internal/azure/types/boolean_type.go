@@ -1,9 +1,18 @@
 package types
 
+import "github.com/hashicorp/terraform-plugin-framework/attr"
+
 var _ TypeBase = &BooleanType{}
 
 type BooleanType struct {
 	Type string `json:"$type"`
+}
+
+func (t *BooleanType) GetReadOnly(i interface{}) interface{} {
+	if t == nil || i == nil {
+		return nil
+	}
+	return i
 }
 
 func (t *BooleanType) AsTypeBase() *TypeBase {
@@ -11,7 +20,7 @@ func (t *BooleanType) AsTypeBase() *TypeBase {
 	return &typeBase
 }
 
-func (t *BooleanType) Validate(body interface{}, path string) []error {
+func (t *BooleanType) Validate(body attr.Value, path string) []error {
 	return nil
 }
 

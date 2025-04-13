@@ -15,8 +15,8 @@ import (
 	"github.com/Azure/terraform-provider-azapi/internal/clients"
 	"github.com/Azure/terraform-provider-azapi/internal/services/parse"
 	"github.com/Azure/terraform-provider-azapi/utils"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 type GenericResource struct{}
@@ -40,7 +40,7 @@ func TestAccGenericResource_basic(t *testing.T) {
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 	})
 }
 
@@ -55,12 +55,12 @@ func TestAccGenericResource_invalidVersionUpdate(t *testing.T) {
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config:      r.basicInvalidVersion(data),
 			ExpectError: regexp.MustCompile("400 Bad Request"),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config:   r.basic(data),
 			PlanOnly: true,
@@ -115,7 +115,7 @@ func TestAccGenericResource_complete(t *testing.T) {
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 	})
 }
 
@@ -133,7 +133,7 @@ func TestAccGenericResource_completeBody(t *testing.T) {
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
 		},
-		data.ImportStep(append(importIgnores, defaultIgnores()...)...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, append(importIgnores, defaultIgnores()...)...),
 	})
 }
 
@@ -148,28 +148,28 @@ func TestAccGenericResource_identity(t *testing.T) {
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config: r.identityUserAssigned(data),
 			Check: resource.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config: r.identitySystemAssigned(data),
 			Check: resource.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config: r.complete(data),
 			Check: resource.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 	})
 }
 
@@ -185,7 +185,7 @@ func TestAccGenericResource_defaultTags(t *testing.T) {
 				check.That(data.ResourceName).Key("tags.key").HasValue("default"),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config: r.defaultTagOverrideInBody(data),
 			Check: resource.ComposeTestCheckFunc(
@@ -193,7 +193,7 @@ func TestAccGenericResource_defaultTags(t *testing.T) {
 				check.That(data.ResourceName).Key("tags.key").HasValue("override"),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config: r.defaultTag(data),
 			Check: resource.ComposeTestCheckFunc(
@@ -201,7 +201,7 @@ func TestAccGenericResource_defaultTags(t *testing.T) {
 				check.That(data.ResourceName).Key("tags.key").HasValue("default"),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config: r.defaultTagOverrideInHcl(data),
 			Check: resource.ComposeTestCheckFunc(
@@ -209,7 +209,7 @@ func TestAccGenericResource_defaultTags(t *testing.T) {
 				check.That(data.ResourceName).Key("tags.key").HasValue("override"),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 	})
 }
 
@@ -226,7 +226,7 @@ func TestAccGenericResource_defaultsNotApplicable(t *testing.T) {
 				check.That(data.ResourceName).Key("location").DoesNotExist(),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 	})
 }
 
@@ -242,7 +242,7 @@ func TestAccGenericResource_defaultLocation(t *testing.T) {
 				check.That(data.ResourceName).Key("location").HasValue(location.Normalize(data.LocationPrimary)),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config: r.defaultLocationOverrideInHcl(data),
 			Check: resource.ComposeTestCheckFunc(
@@ -250,7 +250,7 @@ func TestAccGenericResource_defaultLocation(t *testing.T) {
 				check.That(data.ResourceName).Key("location").HasValue(location.Normalize(data.LocationSecondary)),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 	})
 }
 
@@ -283,7 +283,7 @@ func TestAccGenericResource_defaultsNaming(t *testing.T) {
 				check.That(data.ResourceName).Key("name").HasValue("acctestdefaultNaming"),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 		{
 			Config: r.defaultNamingOverrideInHcl(data),
 			Check: resource.ComposeTestCheckFunc(
@@ -291,7 +291,7 @@ func TestAccGenericResource_defaultsNaming(t *testing.T) {
 				check.That(data.ResourceName).Key("name").HasValue("hclNaming"),
 			),
 		},
-		data.ImportStep(defaultIgnores()...),
+		data.ImportStepWithImportStateIdFunc(r.ImportIdFunc, defaultIgnores()...),
 	})
 }
 
@@ -402,7 +402,6 @@ func TestAccGenericResource_secretsInAsterisks(t *testing.T) {
 }
 
 func TestAccGenericResource_nonstandardLRO(t *testing.T) {
-	t.Skip("This test is passing locally but failing in CI. Skipping for now.")
 	data := acceptance.BuildTestData(t, "azapi_resource", "test")
 	r := GenericResource{}
 	data.ResourceTest(t, r, []resource.TestStep{
@@ -420,7 +419,8 @@ func TestAccGenericResource_nullLocation(t *testing.T) {
 	r := GenericResource{}
 	data.ResourceTest(t, r, []resource.TestStep{
 		{
-			Config: r.nullLocation(data),
+			Config:            r.nullLocation(data),
+			ExternalProviders: externalProvidersAzurerm(),
 			Check: resource.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
@@ -521,6 +521,65 @@ func TestAccGenericResource_queryParameters(t *testing.T) {
 			Check: resource.ComposeTestCheckFunc(
 				check.That(data.ResourceName).ExistsInAzure(r),
 			),
+		},
+	})
+}
+
+func TestAccGenericResource_replaceTriggersRefs(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azapi_resource", "test")
+	r := GenericResource{}
+	data.ResourceTest(t, r, []resource.TestStep{
+		{
+			Config: r.replaceTriggersRefs(data, "S0"),
+			Check: resource.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+		{
+			Config: r.replaceTriggersRefs(data, "E0"),
+			Check: resource.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+		},
+	})
+}
+
+func TestAccGenericResource_defaultOutput(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azapi_resource", "test")
+	r := GenericResource{}
+	data.ResourceTest(t, r, []resource.TestStep{
+		{
+			Config: r.defaultOutput(data),
+			Check: resource.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+				check.That(data.ResourceName).Key("output.properties.automationHybridServiceUrl").Exists(),
+			),
+		},
+	})
+}
+
+func TestAccGenericResource_moveResource(t *testing.T) {
+	data := acceptance.BuildTestData(t, "azapi_resource", "test")
+	r := GenericResource{}
+	data.ResourceTest(t, r, []resource.TestStep{
+		{
+			Config:            r.moveResourceSetup(data),
+			Check:             resource.ComposeTestCheckFunc(),
+			ExternalProviders: externalProvidersAzurerm(),
+		},
+		{
+			Config: r.moveResourceStartMoving(data),
+			Check: resource.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+			ExternalProviders: externalProvidersAzurerm(),
+		},
+		{
+			Config: r.moveResourceUpdate(data),
+			Check: resource.ComposeTestCheckFunc(
+				check.That(data.ResourceName).ExistsInAzure(r),
+			),
+			ExternalProviders: externalProvidersAzurerm(),
 		},
 	})
 }
@@ -1233,7 +1292,7 @@ resource "azapi_resource" "storageAccount" {
     kind = "StorageV2"
     properties = {
       accessTier                   = "Hot"
-      allowBlobPublicAccess        = true
+      allowBlobPublicAccess        = false
       allowCrossTenantReplication  = true
       allowSharedKeyAccess         = true
       defaultToOAuthAuthentication = false
@@ -1306,7 +1365,7 @@ resource "azapi_resource" "storageAccount" {
     kind = "StorageV2"
     properties = {
       accessTier                   = "Hot"
-      allowBlobPublicAccess        = true
+      allowBlobPublicAccess        = false
       allowCrossTenantReplication  = true
       allowSharedKeyAccess         = true
       defaultToOAuthAuthentication = false
@@ -1431,9 +1490,19 @@ resource "azapi_resource" "test2" {
     }
   }
 
-  locks = [azapi_resource.routeTable.id, azapi_resource.resourceGroup.id]
+  locks = [azapi_resource.resourceGroup.id, azapi_resource.routeTable.id]
 }
 `, r.template(data), data.RandomInteger, data.RandomString)
+}
+
+func (GenericResource) template(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+resource "azapi_resource" "resourceGroup" {
+  type     = "Microsoft.Resources/resourceGroups@2021-04-01"
+  name     = "acctestRG-%[1]d"
+  location = "%[2]s"
+}
+`, data.RandomInteger, data.LocationPrimary, data.RandomString)
 }
 
 func (r GenericResource) secretsInAsterisks(data acceptance.TestData, clientId, clientSecret string) string {
@@ -1510,7 +1579,7 @@ resource "azapi_resource" "storageAccount" {
     kind = "StorageV2"
     properties = {
       accessTier                   = "Hot"
-      allowBlobPublicAccess        = true
+      allowBlobPublicAccess        = false
       allowCrossTenantReplication  = true
       allowSharedKeyAccess         = true
       defaultToOAuthAuthentication = false
@@ -1584,117 +1653,100 @@ func (r GenericResource) nullLocation(data acceptance.TestData) string {
 	return fmt.Sprintf(`
 %[1]s
 
-data "azapi_client_config" "current" {}
-
-resource "azapi_resource" "component" {
-  type      = "Microsoft.Insights/components@2020-02-02-preview"
-  parent_id = azapi_resource.resourceGroup.id
-  name      = "accappinsights%[2]s"
-  location  = azapi_resource.resourceGroup.location
-  body = {
-    kind = "web"
-    properties = {
-      Application_Type                = "web"
-      DisableIpMasking                = false
-      DisableLocalAuth                = false
-      ForceCustomerStorageForProfiler = false
-      SamplingPercentage              = 100
-      publicNetworkAccessForIngestion = "Enabled"
-      publicNetworkAccessForQuery     = "Enabled"
+provider "azurerm" {
+  features {
+    resource_group {
+      prevent_deletion_if_contains_resources = false
+    }
+    key_vault {
+      purge_soft_delete_on_destroy       = false
+      purge_soft_deleted_keys_on_destroy = false
     }
   }
 }
 
-resource "azapi_resource" "vault" {
-  type      = "Microsoft.KeyVault/vaults@2024-04-01-preview"
-  parent_id = azapi_resource.resourceGroup.id
-  name      = "acckeyvault%[2]s"
-  location  = azapi_resource.resourceGroup.location
-  body = {
-    properties = {
-      accessPolicies               = []
-      createMode                   = "default"
-      enableRbacAuthorization      = false
-      enableSoftDelete             = true
-      enabledForDeployment         = false
-      enabledForDiskEncryption     = false
-      enabledForTemplateDeployment = false
-      publicNetworkAccess          = "Enabled"
-      sku = {
-        family = "A"
-        name   = "premium"
-      }
-      softDeleteRetentionInDays = 7
-      tenantId                  = data.azapi_client_config.current.tenant_id
-    }
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_application_insights" "test" {
+  name                = "accappinsights%[2]s"
+  location            = azapi_resource.resourceGroup.location
+  resource_group_name = azapi_resource.resourceGroup.name
+  application_type    = "web"
+  lifecycle {
+    ignore_changes = [workspace_id]
+  }
+}
+
+resource "azurerm_key_vault" "test" {
+  name                = "acckeyvault%[2]s"
+  location            = azapi_resource.resourceGroup.location
+  resource_group_name = azapi_resource.resourceGroup.name
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+  sku_name            = "standard"
+  access_policy {
+    tenant_id = data.azurerm_client_config.current.tenant_id
+    object_id = data.azurerm_client_config.current.object_id
+    key_permissions = [
+      "Create",
+      "Get",
+      "Delete",
+      "Purge",
+      "GetRotationPolicy",
+    ]
   }
   lifecycle {
-    ignore_changes = [body.properties.accessPolicies]
+    ignore_changes = [access_policy]
   }
 }
 
-
-resource "azapi_resource" "storageAccount" {
-  type      = "Microsoft.Storage/storageAccounts@2023-05-01"
-  parent_id = azapi_resource.resourceGroup.id
-  name      = "acctestsa%[2]s"
-  location  = azapi_resource.resourceGroup.location
-  body = {
-    kind = "StorageV2"
-    properties = {
-      accessTier                   = "Hot"
-      allowBlobPublicAccess        = true
-      allowCrossTenantReplication  = true
-      allowSharedKeyAccess         = true
-      defaultToOAuthAuthentication = false
-      isHnsEnabled                 = false
-      isNfsV3Enabled               = false
-      isSftpEnabled                = false
-      minimumTlsVersion            = "TLS1_2"
-      networkAcls = {
-        defaultAction = "Allow"
-      }
-      publicNetworkAccess      = "Enabled"
-      supportsHttpsTrafficOnly = true
-    }
-    sku = {
-      name = "Standard_LRS"
-    }
-  }
+resource "azurerm_user_assigned_identity" "test" {
+  name                = "acctestUAI-%[2]s"
+  location            = azapi_resource.resourceGroup.location
+  resource_group_name = azapi_resource.resourceGroup.name
 }
 
-resource "azapi_resource" "workspace" {
-  type      = "Microsoft.MachineLearningServices/workspaces@2024-04-01-preview"
-  parent_id = azapi_resource.resourceGroup.id
-  name      = "acctestmlws%[2]s"
-  location  = azapi_resource.resourceGroup.location
+resource "azurerm_role_assignment" "test" {
+  scope                = azurerm_key_vault.test.id
+  role_definition_name = "Key Vault Administrator"
+  principal_id         = azurerm_user_assigned_identity.test.principal_id
+}
+
+resource "azurerm_storage_account" "test" {
+  name                            = "acctestsa%[2]s"
+  location                        = azapi_resource.resourceGroup.location
+  resource_group_name             = azapi_resource.resourceGroup.name
+  account_tier                    = "Standard"
+  account_replication_type        = "LRS"
+  allow_nested_items_to_be_public = false
+}
+
+resource "azurerm_machine_learning_workspace" "test" {
+  name                    = "acctestmlws%[2]s"
+  location                = azapi_resource.resourceGroup.location
+  resource_group_name     = azapi_resource.resourceGroup.name
+  application_insights_id = azurerm_application_insights.test.id
+  key_vault_id            = azurerm_key_vault.test.id
+  storage_account_id      = azurerm_storage_account.test.id
+
   identity {
-    type         = "SystemAssigned"
-    identity_ids = []
+    type = "UserAssigned"
+    identity_ids = [
+      azurerm_user_assigned_identity.test.id,
+    ]
   }
-  body = {
-    properties = {
-      applicationInsights = azapi_resource.component.id
-      keyVault            = azapi_resource.vault.id
-      publicNetworkAccess = "Enabled"
-      storageAccount      = azapi_resource.storageAccount.id
-      v1LegacyMode        = false
-      managedNetwork = {
-        isolationMode = "AllowOnlyApprovedOutbound"
-      }
-    }
-    sku = {
-      name = "Basic"
-      tier = "Basic"
-    }
+  primary_user_assigned_identity = azurerm_user_assigned_identity.test.id
+  public_network_access_enabled  = true
+  managed_network {
+    isolation_mode = "AllowOnlyApprovedOutbound"
   }
-  ignore_casing = true
+
+  depends_on = [azurerm_role_assignment.test]
 }
 
 resource "azapi_resource" "test" {
   type      = "Microsoft.MachineLearningServices/workspaces/outboundRules@2023-10-01"
   name      = "acctest%[2]s"
-  parent_id = azapi_resource.workspace.id
+  parent_id = azurerm_machine_learning_workspace.test.id
   body = {
     properties = {
       category    = "UserDefined"
@@ -1703,7 +1755,7 @@ resource "azapi_resource" "test" {
       destination = "example.org"
     }
   }
-  locks = [azapi_resource.workspace.id]
+  locks = [azurerm_machine_learning_workspace.test.id]
 }
 `, r.template(data), data.RandomString)
 }
@@ -1772,16 +1824,6 @@ resource "azapi_resource" "test" {
   }
 }
 `, r.template(data), data.RandomString)
-}
-
-func (GenericResource) template(data acceptance.TestData) string {
-	return fmt.Sprintf(`
-resource "azapi_resource" "resourceGroup" {
-  type     = "Microsoft.Resources/resourceGroups@2021-04-01"
-  name     = "acctestRG-%[1]d"
-  location = "%[2]s"
-}
-`, data.RandomInteger, data.LocationPrimary, data.RandomString)
 }
 
 func (r GenericResource) replaceTriggeredByValue1(data acceptance.TestData) string {
@@ -1913,6 +1955,148 @@ resource "azapi_resource" "test" {
     env = "prod"
   }
   response_export_values = ["properties"]
+}
+`, r.template(data), data.RandomString)
+}
+
+func (r GenericResource) replaceTriggersRefs(data acceptance.TestData, skuName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "azapi_resource" "test" {
+  type      = "Microsoft.AppPlatform/Spring@2024-05-01-preview"
+  parent_id = azapi_resource.resourceGroup.id
+  name      = "acctest-sc-%[2]d"
+  location  = azapi_resource.resourceGroup.location
+  body = {
+    properties = {
+      zoneRedundant = false
+    }
+    sku = {
+      name = "%[3]s"
+    }
+  }
+  replace_triggers_refs = ["sku.name"]
+}
+`, r.template(data), data.RandomInteger, skuName)
+}
+
+func (r GenericResource) defaultOutput(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+%s
+
+provider "azapi" {
+  disable_default_output = false
+}
+
+resource "azapi_resource" "test" {
+  type      = "Microsoft.Automation/automationAccounts@2023-11-01"
+  name      = "acctest%[2]s"
+  parent_id = azapi_resource.resourceGroup.id
+  location  = azapi_resource.resourceGroup.location
+  body = {
+    properties = {
+      sku = {
+        name = "Basic"
+      }
+    }
+  }
+}
+`, r.template(data), data.RandomString)
+}
+
+func (r GenericResource) moveResourceSetup(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+%s
+
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_cognitive_account" "test" {
+  name                = "acctest%[2]s"
+  location            = azapi_resource.resourceGroup.location
+  resource_group_name = azapi_resource.resourceGroup.name
+  kind                = "Face"
+  sku_name            = "S0"
+  tags = {
+    Acceptance = "Test"
+  }
+}
+`, r.template(data), data.RandomString)
+}
+
+func (r GenericResource) moveResourceStartMoving(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+%s
+
+moved {
+  from = azurerm_cognitive_account.test
+  to   = azapi_resource.test
+}
+
+resource "azapi_resource" "test" {
+  type      = "Microsoft.CognitiveServices/accounts@2024-10-01"
+  parent_id = azapi_resource.resourceGroup.id
+  name      = "acctest%[2]s"
+  location  = azapi_resource.resourceGroup.location
+  body = {
+    kind = "Face"
+    properties = {
+      allowedFqdnList               = []
+      disableLocalAuth              = false
+      dynamicThrottlingEnabled      = false
+      publicNetworkAccess           = "Enabled"
+      restrictOutboundNetworkAccess = false
+    }
+    sku = {
+      name = "S0"
+    }
+  }
+  tags = {
+    Acceptance = "Test"
+  }
+  ignore_casing             = false
+  schema_validation_enabled = true
+  ignore_missing_property   = true
+}
+`, r.template(data), data.RandomString)
+}
+
+func (r GenericResource) moveResourceUpdate(data acceptance.TestData) string {
+	return fmt.Sprintf(`
+%s
+
+moved {
+  from = azurerm_cognitive_account.test
+  to   = azapi_resource.test
+}
+
+resource "azapi_resource" "test" {
+  type      = "Microsoft.CognitiveServices/accounts@2024-10-01"
+  parent_id = azapi_resource.resourceGroup.id
+  name      = "acctest%[2]s"
+  location  = azapi_resource.resourceGroup.location
+  body = {
+    kind = "Face"
+    properties = {
+      allowedFqdnList               = []
+      disableLocalAuth              = false
+      dynamicThrottlingEnabled      = false
+      publicNetworkAccess           = "Enabled"
+      restrictOutboundNetworkAccess = false
+      restore                       = null
+    }
+    sku = {
+      name = "S0"
+    }
+  }
+  tags = {
+    Acceptance = "Test"
+  }
+  ignore_casing             = false
+  schema_validation_enabled = true
+  ignore_missing_property   = true
 }
 `, r.template(data), data.RandomString)
 }

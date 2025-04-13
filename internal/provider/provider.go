@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
+	"github.com/hashicorp/terraform-plugin-framework/ephemeral"
 	"github.com/hashicorp/terraform-plugin-framework/function"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -35,6 +36,7 @@ import (
 
 var _ provider.Provider = &Provider{}
 var _ provider.ProviderWithFunctions = &Provider{}
+var _ provider.ProviderWithEphemeralResources = &Provider{}
 
 func AzureProvider() provider.Provider {
 	return &Provider{}
@@ -73,6 +75,9 @@ type providerData struct {
 	DefaultName                  types.String `tfsdk:"default_name"`
 	DefaultLocation              types.String `tfsdk:"default_location"`
 	DefaultTags                  types.Map    `tfsdk:"default_tags"`
+	EnablePreflight              types.Bool   `tfsdk:"enable_preflight"`
+	DisableDefaultOutput         types.Bool   `tfsdk:"disable_default_output"`
+	MaximumBusyRetryAttempts     types.Int32  `tfsdk:"maximum_busy_retry_attempts"`
 }
 
 func (model providerData) GetClientId() (*string, error) {
@@ -277,7 +282,7 @@ func (p Provider) Schema(ctx context.Context, request provider.SchemaRequest, re
 
 			"oidc_azure_service_connection_id": schema.StringAttribute{
 				Optional:            true,
-				MarkdownDescription: "The Azure Pipelines Service Connection ID to use for authentication. This can also be sourced from the `ARM_OIDC_AZURE_SERVICE_CONNECTION_ID` environment variable.",
+				MarkdownDescription: "The Azure Pipelines Service Connection ID to use for authentication. This can also be sourced from the `ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID` or `ARM_OIDC_AZURE_SERVICE_CONNECTION_ID` Environment Variables.",
 			},
 
 			"use_oidc": schema.BoolAttribute{
@@ -351,6 +356,21 @@ func (p Provider) Schema(ctx context.Context, request provider.SchemaRequest, re
 					tags.Validator(),
 				},
 				MarkdownDescription: "A mapping of tags which should be assigned to the azure resource as default tags. The`tags` in each resource block can override the `default_tags`.",
+			},
+
+			"enable_preflight": schema.BoolAttribute{
+				Optional:    true,
+				Description: "Enable Preflight Validation. The default is false. When set to true, the provider will use Preflight to do static validation before really deploying a new resource. When set to false, the provider will disable this validation. This can also be sourced from the `ARM_ENABLE_PREFLIGHT` Environment Variable.",
+			},
+
+			"disable_default_output": schema.BoolAttribute{
+				Optional:    true,
+				Description: "Disable default output. The default is false. When set to false, the provider will output the read-only properties if `response_export_values` is not specified in the resource block. When set to true, the provider will disable this output. This can also be sourced from the `ARM_DISABLE_DEFAULT_OUTPUT` Environment Variable.",
+			},
+
+			"maximum_busy_retry_attempts": schema.Int32Attribute{
+				Optional:            true,
+				MarkdownDescription: "The maximum number of retries to attempt if the Azure API returns an HTTP 408, 429, 500, 502, 503, or 504 response. The default is `3`. The resource-specific retry configuration may additionally be used to retry on other errors and conditions.",
 			},
 		},
 	}
@@ -505,7 +525,9 @@ func (p Provider) Configure(ctx context.Context, request provider.ConfigureReque
 	}
 
 	if model.OIDCAzureServiceConnectionID.IsNull() {
-		if v := os.Getenv("ARM_OIDC_AZURE_SERVICE_CONNECTION_ID"); v != "" {
+		if v := os.Getenv("ARM_ADO_PIPELINE_SERVICE_CONNECTION_ID"); v != "" {
+			model.OIDCAzureServiceConnectionID = types.StringValue(v)
+		} else if v := os.Getenv("ARM_OIDC_AZURE_SERVICE_CONNECTION_ID"); v != "" {
 			model.OIDCAzureServiceConnectionID = types.StringValue(v)
 		}
 	}
@@ -559,6 +581,21 @@ func (p Provider) Configure(ctx context.Context, request provider.ConfigureReque
 			model.DisableTerraformPartnerID = types.BoolValue(v == "true")
 		} else {
 			model.DisableTerraformPartnerID = types.BoolValue(false)
+		}
+	}
+
+	if model.EnablePreflight.IsNull() {
+		if v := os.Getenv("ARM_ENABLE_PREFLIGHT"); v != "" {
+			model.EnablePreflight = types.BoolValue(v == "true")
+		} else {
+			model.EnablePreflight = types.BoolValue(false)
+		}
+	}
+	if model.DisableDefaultOutput.IsNull() {
+		if v := os.Getenv("ARM_DISABLE_DEFAULT_OUTPUT"); v != "" {
+			model.DisableDefaultOutput = types.BoolValue(v == "true")
+		} else {
+			model.DisableDefaultOutput = types.BoolValue(false)
 		}
 	}
 
@@ -623,15 +660,21 @@ func (p Provider) Configure(ctx context.Context, request provider.ConfigureReque
 		response.Diagnostics.AddError("Failed to obtain a credential.", err.Error())
 		return
 	}
-
+	maxGoSdkRetryAttempts := int32(3)
+	if !model.MaximumBusyRetryAttempts.IsNull() {
+		maxGoSdkRetryAttempts = model.MaximumBusyRetryAttempts.ValueInt32()
+	}
 	copt := &clients.Option{
 		Cred:                 cred,
 		CloudCfg:             cloudConfig,
 		ApplicationUserAgent: buildUserAgent(request.TerraformVersion, model.PartnerID.ValueString(), model.DisableTerraformPartnerID.ValueBool()),
+		MaxGoSdkRetries:      maxGoSdkRetryAttempts,
 		Features: features.UserFeatures{
-			DefaultTags:     tags.ExpandTags(model.DefaultTags),
-			DefaultLocation: location.Normalize(model.DefaultLocation.ValueString()),
-			DefaultNaming:   model.DefaultName.ValueString(),
+			DefaultTags:          tags.ExpandTags(model.DefaultTags),
+			DefaultLocation:      location.Normalize(model.DefaultLocation.ValueString()),
+			DefaultNaming:        model.DefaultName.ValueString(),
+			EnablePreflight:      model.EnablePreflight.ValueBool(),
+			DisableDefaultOutput: model.DisableDefaultOutput.ValueBool(),
 		},
 		SkipProviderRegistration:    model.SkipProviderRegistration.ValueBool(),
 		DisableCorrelationRequestID: model.DisableCorrelationRequestID.ValueBool(),
@@ -651,6 +694,7 @@ func (p Provider) Configure(ctx context.Context, request provider.ConfigureReque
 
 	response.ResourceData = client
 	response.DataSourceData = client
+	response.EphemeralResourceData = client
 }
 
 func (p Provider) Functions(ctx context.Context) []func() function.Function {
@@ -705,6 +749,14 @@ func (p Provider) Resources(ctx context.Context) []func() resource.Resource {
 		},
 		func() resource.Resource {
 			return &services.DataPlaneResource{}
+		},
+	}
+}
+
+func (p Provider) EphemeralResources(ctx context.Context) []func() ephemeral.EphemeralResource {
+	return []func() ephemeral.EphemeralResource{
+		func() ephemeral.EphemeralResource {
+			return &services.ActionEphemeral{}
 		},
 	}
 }
